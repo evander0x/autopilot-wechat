@@ -1,0 +1,18 @@
+# 本项目不存任何密钥，保险起见仍列出常见敏感文件
+config.yaml
+*.yaml.local
+.env
+.env.*
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# 本地产物
+drafts/
+*.fragment.html
+*.local.html
+
+# 系统
+.DS_Store
