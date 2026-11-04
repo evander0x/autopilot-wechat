@@ -1,4 +1,4 @@
-# wechat-autopilot
+# autopilot-wechat
 
 公众号全流程自动化：**选题 → 写稿 → 审稿 → 排版（编辑手记）→ 推送草稿箱**。
 
