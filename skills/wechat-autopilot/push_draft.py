@@ -53,7 +53,10 @@ def api_get(url: str):
 
 
 def api_post_json(url: str, payload: dict):
-    r = requests.post(url, json=payload, timeout=30)
+    # 必须显式 ensure_ascii=False：requests 的 json= 默认把中文转成 \uXXXX，
+    # 微信会把转义序列原样存下来，草稿里显示成 "\u62d2\u7edd" 而不是「拒绝」。
+    body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+    r = requests.post(url, data=body, headers={"Content-Type": "application/json"}, timeout=30)
     r.encoding = "utf-8"
     return r.json()
 
