@@ -238,6 +238,20 @@ def render_blocks(body: str, c: dict) -> str:
             out.append(render_list(items, ordered, c))
             continue
 
+        # 地址胶囊：以「地址：」开头的行渲染成入口标签
+        if stripped.startswith("地址："):
+            flush_paragraph(para)
+            para = []
+            out.append(
+                '<p style="margin:18px 0 26px;">'
+                '<span style="display:inline-block; padding:7px 16px; background:#f4f8f9; '
+                'border:1px solid #d9e8ec; border-radius:999px; font-size:13.5px; '
+                'color:%s; letter-spacing:.3px;">%s</span></p>'
+                % (c["accent"], html.escape(stripped))
+            )
+            i += 1
+            continue
+
         para.append(stripped)
         i += 1
 
