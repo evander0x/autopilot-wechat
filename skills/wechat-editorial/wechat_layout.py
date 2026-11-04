@@ -349,8 +349,12 @@ def render_punch(block, c: dict) -> str:
 # ---------------------------------------------------------------- 组装页面
 
 
-def render_article(md_text: str, theme: str = "teal") -> tuple:
-    """渲染正文片段（不含页面外壳）。返回 (title, article_html)。"""
+def render_article(md_text: str, theme: str = "teal", include_header: bool = True) -> tuple:
+    """渲染正文片段（不含页面外壳）。返回 (title, article_html)。
+
+    include_header=False 时省略栏目标签和大标题（公众号编辑器里标题单独填，
+    正文再出现一遍是重复的）；导语保留，属于正文内容。
+    """
     c = THEMES.get(theme, THEMES["teal"])
     meta, body = split_front_matter(md_text)
 
@@ -358,7 +362,7 @@ def render_article(md_text: str, theme: str = "teal") -> tuple:
     lead = meta.get("lead", "").strip()
 
     head = []
-    if label:
+    if label and include_header:
         head.append(
             '<section style="margin:0 0 18px;">'
             '<span style="display:inline-block; width:18px; height:2px; background:%s; '
@@ -386,7 +390,9 @@ def render_article(md_text: str, theme: str = "teal") -> tuple:
     else:
         h1_html = ""
 
-    article = "\n".join([x for x in head + [h1_html, lead_html] if x]).strip() + "\n" + inner
+    article = "\n".join(
+        [x for x in head + ([h1_html] if include_header else []) + [lead_html] if x]
+    ).strip() + "\n" + inner
 
     return meta.get("title", "公众号文章"), article
 
@@ -450,7 +456,7 @@ def main():
 
     md = Path(args.input).read_text(encoding="utf-8")
     if args.fragment:
-        _, article = render_article(md, args.theme)
+        _, article = render_article(md, args.theme, include_header=False)
         Path(args.output).write_text(article, encoding="utf-8")
     else:
         Path(args.output).write_text(build(md, args.theme), encoding="utf-8")

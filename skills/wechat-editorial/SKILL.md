@@ -28,7 +28,9 @@ allowed-tools:
 ```bash
 python3 ~/.workbuddy/skills/wechat-editorial/wechat_layout.py article.md -o article.html
 # 可选：--theme ink（墨色版）| teal（默认，深青）
-# 可选：--fragment 只输出正文片段（不含页面外壳），供推草稿箱使用
+# 可选：--fragment 只输出正文片段（不含页面外壳），供推草稿箱使用。
+#       fragment 会自动省略 front matter 的 label 和文首大标题——
+#       公众号编辑器里标题单独填，正文重复出现是冗余；导语保留。
 ```
 
 3. 用 present_files 打开 `article.html` 给用户看。
