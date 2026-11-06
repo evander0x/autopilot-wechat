@@ -62,6 +62,30 @@ THEMES = {
         "card_border": "#eae5db",
         "quote_text": "#4a4a4a",
     },
+    # 橙色科技流：参考「逛逛GitHub」的极简版式
+    #   正文 17px / 行高 2em / 90% 黑 / 字间距 .034em / 两端对齐
+    #   小标题 = 32px 橙色 Futura 编号 + 17px 常规标题
+    #   强调只用加粗；无卡片、无分割线、无图注
+    "orange": {
+        "accent": "#ff6827",
+        "accent_soft": "#fff4ef",
+        "accent_light": "#ffe3d6",
+        "ink": "#0d0d0d",
+        "text": "rgba(0,0,0,0.9)",
+        "muted": "#8b8b8b",
+        "hairline": "#ececec",
+        "card_bg": "#fafafa",
+        "card_border": "#eeeeee",
+        "quote_text": "#333333",
+        "variant": "orange",
+        "body_size": "17px",
+        "body_lh": "2",
+        "body_ls": "0.034em",
+        "body_margin": "0 8px 16px",
+        "font": '"PingFang SC",system-ui,-apple-system,"Helvetica Neue",'
+        '"Hiragino Sans GB","Microsoft YaHei UI","Microsoft YaHei",Arial,sans-serif',
+        "num_font": "Futura-Medium,Futura,'Helvetica Neue',Helvetica,Arial,sans-serif",
+    },
 }
 
 # ---------------------------------------------------------------- 前置元数据
@@ -90,6 +114,9 @@ def inline(text: str, c: dict) -> str:
     t = html.escape(text, quote=False)
 
     def hl(m):
+        if c.get("variant") == "orange":
+            # 该风格没有彩色高亮，强调只有加粗
+            return '<strong style="font-weight:700;">%s</strong>' % m.group(1)
         return (
             '<span style="background:linear-gradient(to top,'
             + c["accent_light"]
@@ -132,6 +159,21 @@ def render_blocks(body: str, c: dict) -> str:
             return
         text = " ".join(x.strip() for x in buf).strip()
         if text:
+            if c.get("variant") == "orange":
+                out.append(
+                    '<p style="margin:%s; font-size:%s; line-height:%s; color:%s; '
+                    'letter-spacing:%s; text-align:justify; font-family:%s;">%s</p>'
+                    % (
+                        c["body_margin"],
+                        c["body_size"],
+                        c["body_lh"],
+                        c["text"],
+                        c["body_ls"],
+                        c["font"],
+                        inline(text, c),
+                    )
+                )
+                return
             out.append(
                 '<p style="margin:0 0 22px; font-size:16px; line-height:1.95; color:%s; '
                 'letter-spacing:.4px; text-align:justify;">%s</p>' % (c["text"], inline(text, c))
@@ -238,20 +280,29 @@ def render_blocks(body: str, c: dict) -> str:
             out.append(render_list(items, ordered, c))
             continue
 
-        # 地址胶囊：以「地址：」开头的行渲染成深色地址栏样式
+        # 地址：以「地址：」开头的行 → 地址栏 / 代码块（两种风格）
         if stripped.startswith("地址："):
             flush_paragraph(para)
             para = []
             addr = html.escape(stripped[len("地址："):].strip())
-            out.append(
-                '<p style="margin:18px 0 26px;">'
-                '<span style="display:inline-block; padding:9px 16px; background:#1f2d33; '
-                'border-radius:8px; font-family:SFMono-Regular,Consolas,Menlo,monospace; '
-                'font-size:13px; letter-spacing:.2px;">'
-                '<span style="color:#62d9e8;">&#8599; </span>'
-                '<span style="color:#e6eef0;">%s</span></span></p>'
-                % addr
-            )
+            if c.get("variant") == "orange":
+                # 参考风格：灰底等宽「代码块」，和正文同宽
+                out.append(
+                    '<section style="margin:0 8px 16px; padding:14px 16px; background:#f7f7f7; '
+                    'border-radius:6px;">'
+                    '<p style="margin:0; font-size:15px; line-height:1.7; color:#333333; '
+                    'font-family:SFMono-Regular,Consolas,Menlo,monospace; '
+                    'letter-spacing:0; word-break:break-all;">开源地址：%s</p></section>' % addr
+                )
+            else:
+                out.append(
+                    '<p style="margin:18px 0 26px;">'
+                    '<span style="display:inline-block; padding:9px 16px; background:#1f2d33; '
+                    'border-radius:8px; font-family:SFMono-Regular,Consolas,Menlo,monospace; '
+                    'font-size:13px; letter-spacing:.2px;">'
+                    '<span style="color:#62d9e8;">&#8599; </span>'
+                    '<span style="color:#e6eef0;">%s</span></span></p>' % addr
+                )
             i += 1
             continue
 
@@ -263,6 +314,13 @@ def render_blocks(body: str, c: dict) -> str:
 
 
 def render_image(alt: str, src: str, note: str, c: dict) -> str:
+    if c.get("variant") == "orange":
+        # 参考风格：满宽居中、无圆角、无图注
+        return (
+            '<section style="text-align:center; margin:0 8px 16px;">'
+            '<img src="%s" alt="%s" style="max-width:100%%; height:auto; display:block; '
+            'margin:0 auto;"></section>' % (html.escape(src), html.escape(alt))
+        )
     parts = [
         '<img src="%s" alt="%s" style="max-width:100%%; height:auto; display:block; '
         'margin:30px auto 8px; border-radius:8px;">' % (html.escape(src), html.escape(alt))
@@ -278,6 +336,35 @@ def render_image(alt: str, src: str, note: str, c: dict) -> str:
 
 def render_h2(text: str, c: dict) -> str:
     m = re.match(r"^(\d{1,2})[\s　.、]*(.*)$", text)
+    if c.get("variant") == "orange":
+        # 32px 橙色 Futura 编号 + 17px 常规标题，同一行，无底色无边框
+        if m:
+            num, title = m.group(1), m.group(2)
+            return (
+                '<p style="margin:24px 8px 0px; font-size:%s; line-height:%s; color:%s; '
+                'letter-spacing:%s; text-align:justify; font-family:%s;">'
+                '<span style="color:%s; font-family:%s; font-size:32px; font-weight:700; '
+                'letter-spacing:1px;">%s</span> '
+                '<span style="font-size:%s; font-weight:400;">%s</span></p>'
+                % (
+                    c["body_size"],
+                    c["body_lh"],
+                    c["text"],
+                    c["body_ls"],
+                    c["font"],
+                    c["accent"],
+                    c["num_font"],
+                    num,
+                    c["body_size"],
+                    inline(title, c),
+                )
+            )
+        return (
+            '<p style="margin:24px 8px 0px; font-size:%s; line-height:%s; color:%s; '
+            'font-weight:700; letter-spacing:%s; font-family:%s;">%s</p>'
+            % (c["body_size"], c["body_lh"], c["text"], c["body_ls"], c["font"], inline(text, c))
+        )
+
     if m:
         num, title = m.group(1), m.group(2)
         badge = (
@@ -298,6 +385,30 @@ def render_h2(text: str, c: dict) -> str:
 
 
 def render_list(items, ordered: bool, c: dict) -> str:
+    if c.get("variant") == "orange":
+        rows = []
+        for idx, item in enumerate(items, 1):
+            mark = (
+                '<span style="color:%s; font-weight:700;">%d</span>' % (c["accent"], idx)
+                if ordered
+                else '<span style="color:%s; font-weight:700;">·</span>' % c["accent"]
+            )
+            rows.append(
+                '<p style="margin:%s; font-size:%s; line-height:%s; color:%s; '
+                'letter-spacing:%s; text-align:justify; font-family:%s;">%s %s</p>'
+                % (
+                    c["body_margin"],
+                    c["body_size"],
+                    c["body_lh"],
+                    c["text"],
+                    c["body_ls"],
+                    c["font"],
+                    mark,
+                    inline(item, c),
+                )
+            )
+        return "".join(rows)
+
     rows = []
     for idx, item in enumerate(items, 1):
         mark = (
@@ -314,6 +425,41 @@ def render_list(items, ordered: bool, c: dict) -> str:
 
 
 def render_card(title: str, block, c: dict) -> str:
+    if c.get("variant") == "orange":
+        # 该风格没有卡片容器：标题加粗 + 纯段落，保持页面干净
+        items = [b.strip() for b in block if b.strip()]
+        parts = []
+        if title:
+            parts.append(
+                '<p style="margin:24px 8px 8px; font-size:%s; line-height:%s; '
+                'font-weight:700; color:%s; font-family:%s;">%s</p>'
+                % (c["body_size"], c["body_lh"], c["ink"], c["font"], html.escape(title))
+            )
+        for item in items:
+            m = re.match(r"^(\d+)[.、]\s*(.*)$", item)
+            body = m.group(2) if m else item
+            num = (
+                '<span style="color:%s; font-weight:700;">%s</span> '
+                % (c["accent"], m.group(1))
+                if m
+                else ""
+            )
+            parts.append(
+                '<p style="margin:%s; font-size:%s; line-height:%s; color:%s; '
+                'letter-spacing:%s; text-align:justify; font-family:%s;">%s%s</p>'
+                % (
+                    c["body_margin"],
+                    c["body_size"],
+                    c["body_lh"],
+                    c["text"],
+                    c["body_ls"],
+                    c["font"],
+                    num,
+                    inline(body, c),
+                )
+            )
+        return "".join(parts)
+
     items = [b.strip() for b in block if b.strip()]
     rows = []
     for item in items:
@@ -344,6 +490,25 @@ def render_card(title: str, block, c: dict) -> str:
 
 def render_punch(block, c: dict) -> str:
     lines = [b.strip() for b in block if b.strip()]
+
+    if c.get("variant") == "orange":
+        # 该风格没有金句框：居中加粗 + 常规副行，靠留白分隔
+        parts = []
+        for idx, line in enumerate(lines):
+            if idx == 0:
+                parts.append(
+                    '<p style="margin:0 8px 8px; text-align:center; font-size:19px; '
+                    'line-height:%s; font-weight:700; color:%s; font-family:%s;">%s</p>'
+                    % (c["body_lh"], c["ink"], c["font"], inline(line, c))
+                )
+            else:
+                parts.append(
+                    '<p style="margin:0 8px 16px; text-align:center; font-size:%s; '
+                    'line-height:%s; color:#666666; font-family:%s;">%s</p>'
+                    % (c["body_size"], c["body_lh"], c["font"], inline(line, c))
+                )
+        return '<section style="margin:28px 0;">%s</section>' % "".join(parts)
+
     parts = []
     for idx, line in enumerate(lines):
         if idx == 0:
@@ -389,11 +554,18 @@ def render_article(md_text: str, theme: str = "teal", include_header: bool = Tru
         )
 
     if lead:
-        lead_html = (
-            '<section style="margin:0 0 30px; padding:0 0 0 14px; border-left:2px solid #e5e5e5;">'
-            '<p style="margin:0; font-size:14px; line-height:1.9; color:%s; letter-spacing:.4px;">'
-            "%s</p></section>" % (c["muted"], inline(lead, c))
-        )
+        if c.get("variant") == "orange":
+            lead_html = (
+                '<p style="margin:0 8px 16px; font-size:15px; line-height:%s; color:%s; '
+                'letter-spacing:%s; text-align:justify; font-family:%s;">%s</p>'
+                % (c["body_lh"], c["muted"], c["body_ls"], c["font"], inline(lead, c))
+            )
+        else:
+            lead_html = (
+                '<section style="margin:0 0 30px; padding:0 0 0 14px; border-left:2px solid #e5e5e5;">'
+                '<p style="margin:0; font-size:14px; line-height:1.9; color:%s; letter-spacing:.4px;">'
+                "%s</p></section>" % (c["muted"], inline(lead, c))
+            )
     else:
         lead_html = ""
 
