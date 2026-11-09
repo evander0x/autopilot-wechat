@@ -193,6 +193,34 @@ def render_blocks(body: str, c: dict) -> str:
             i += 1
             continue
 
+        # 代码块：``` 围栏，原样保留缩进与换行（不走 inline 处理）
+        if stripped.startswith("```"):
+            flush_paragraph(para)
+            para = []
+            i += 1
+            buf = []
+            while i < n and not lines[i].strip().startswith("```"):
+                buf.append(lines[i].rstrip())
+                i += 1
+            i += 1  # 跳过结束围栏
+            out.append(render_code("\n".join(buf), c))
+            continue
+
+        # 表格：| a | b | 表头 + |---|---| 分隔行
+        if stripped.startswith("|") and i + 1 < n and re.match(
+            r"^\|[\s:\-|]+\|$", lines[i + 1].strip()
+        ):
+            flush_paragraph(para)
+            para = []
+            rows = []
+            while i < n and lines[i].strip().startswith("|"):
+                cells = [x.strip() for x in lines[i].strip().strip("|").split("|")]
+                if not re.match(r"^[\s:\-]+$", "".join(cells)):
+                    rows.append(cells)
+                i += 1
+            out.append(render_table(rows, c))
+            continue
+
         # 围栏块
         if stripped.startswith(":::"):
             flush_paragraph(para)
@@ -311,6 +339,73 @@ def render_blocks(body: str, c: dict) -> str:
 
     flush_paragraph(para)
     return "\n".join(out)
+
+
+def render_table(rows, c: dict) -> str:
+    """Markdown 表格 → 全内联 <table>。微信会剥 class，所以样式必须写在标签上。"""
+    if not rows:
+        return ""
+    header, body = rows[0], rows[1:]
+    orange = c.get("variant") == "orange"
+    head_bg = "transparent" if orange else c["accent_soft"]
+    head_color = c["accent"] if orange else c["ink"]
+    border = "#eeeeee" if orange else "#e7ecec"
+    size = "14px" if orange else "13.5px"
+    out = [
+        '<section style="margin:0 0 26px; overflow-x:auto;">',
+        '<table style="width:100%%; border-collapse:collapse; font-size:%s; line-height:1.7; '
+        'color:%s;">' % (size, c["text"]),
+        '<thead><tr style="background:%s;">' % head_bg,
+    ]
+    ncol = max(1, len(header))
+    # 首列通常是短标签，给窄一点；其余平分，避免手机端列宽失衡
+    if ncol == 1:
+        widths = ["100%"]
+    else:
+        rest = round(74.0 / (ncol - 1), 1)
+        widths = ["26%"] + ["%s%%" % rest] * (ncol - 1)
+    for idx, cell in enumerate(header):
+        out.append(
+            '<th style="width:%s; padding:10px 8px; text-align:left; font-weight:600; color:%s; '
+            'border-bottom:1px solid %s;">%s</th>'
+            % (widths[idx], head_color, border, inline(cell, c))
+        )
+    out.append("</tr></thead><tbody>")
+    for row in body:
+        out.append("<tr>")
+        for cell in row:
+            out.append(
+                '<td style="padding:10px 8px; vertical-align:top; '
+                'border-bottom:1px solid %s;">%s</td>' % (border, inline(cell, c))
+            )
+        out.append("</tr>")
+    out.append("</tbody></table></section>")
+    return "".join(out)
+
+
+def render_code(text: str, c: dict) -> str:
+    """代码块：灰底 + 等宽字体，保留原始缩进。样式全内联，不用 <style>。"""
+    body = html.escape(text)
+    if c.get("variant") == "orange":
+        bg, border, code_color, size, radius = "#f7f7f7", "none", "rgba(0,0,0,0.82)", "15px", "6px"
+        pad, margin, lh = "18px 20px", "24px 8px 28px", "1.9"
+    else:
+        bg, border, code_color, size, radius = (
+            "#f6f8f9",
+            "1px solid #e3ecef",
+            "#2b3a40",
+            "13px",
+            "8px",
+        )
+        pad, margin, lh = "16px 18px", "0 0 24px", "1.85"
+    return (
+        '<section style="margin:%s; padding:%s; background:%s; border:%s; '
+        'border-radius:%s; overflow-x:auto;">'
+        '<pre style="margin:0; font-family:SFMono-Regular,Consolas,Menlo,\'Courier New\',monospace; '
+        'font-size:%s; line-height:%s; color:%s; white-space:pre-wrap; word-break:break-word; '
+        'letter-spacing:0;">%s</pre></section>'
+        % (margin, pad, bg, border, radius, size, lh, code_color, body)
+    )
 
 
 def render_image(alt: str, src: str, note: str, c: dict) -> str:
