@@ -14,5 +14,14 @@ drafts/
 *.fragment.html
 *.local.html
 
+# ---- 自用层：以下内容只留本地，永不入库 ----
+# 每篇文章的工作区（草稿、截图、远程备份、预览图）
+articles/
+# Agent 工作日志与任务状态
+.workbuddy/
+# 历史遗留的草稿回流产物
+drafts/**/draft_*
+draft_*backup*
+
 # 系统
 .DS_Store

@@ -76,6 +76,31 @@ python3 ~/.workbuddy/skills/wechat-editorial/wechat_layout.py article.md -o arti
 - 封面 900×383；没有现成图就先问用户，或经其同意后用图像生成工具做一张
 - 凭证在 `~/.wewrite/config.yaml`；API 报 40164 = IP 不在白名单，48001 = 账号无草稿权限
 
+## Step 5.5 更新已有草稿（用户在后台手改过时）
+
+**铁律：先拉取远程草稿并备份，才能覆盖。绝不盲推。**
+
+脚本与本 SKILL.md 同目录（`skills/wechat-autopilot/`）。
+
+远程草稿（media_id 可用 `fetch_draft.py list` 列出）：
+
+```bash
+~/wewrite/.venv/bin/python <skill_dir>/fetch_draft.py list                 # 列草稿箱
+~/wewrite/.venv/bin/python <skill_dir>/fetch_draft.py get <media_id>       # 拉取原文落盘
+```
+
+就地覆盖（脚本内置强制备份：自动 draft/get 存 `draft_remote_backup-<时间戳>.html/.json`，
+并提示远程有而本地没有的文字，拉取失败即中止）：
+
+```bash
+~/wewrite/.venv/bin/python <skill_dir>/update_draft.py <media_id> article.fragment.html \
+    --title "标题" --digest "摘要" --cover-media-id <thumb_media_id>
+```
+
+- 若用户在后台手改过内容，先 diff 远程与本地，把手改并入本地源稿再覆盖
+- `draft/update` 覆盖后 media_id 不变，不会产生新草稿
+- 凭证只从 `~/.wewrite/config.yaml` 运行时读取，本仓库永不落 AppID/AppSecret
+
 ## Step 6 汇报
 
 完成后必须交代：标题、md/预览/片段的路径、草稿 media_id、来源数量、

@@ -82,8 +82,8 @@ THEMES = {
         "body_lh": "2",
         "body_ls": "0.034em",
         "body_margin": "0 8px 16px",
-        "font": '"PingFang SC",system-ui,-apple-system,"Helvetica Neue",'
-        '"Hiragino Sans GB","Microsoft YaHei UI","Microsoft YaHei",Arial,sans-serif',
+        "font": "'PingFang SC',system-ui,-apple-system,'Helvetica Neue',"
+        "'Hiragino Sans GB','Microsoft YaHei UI','Microsoft YaHei',Arial,sans-serif",
         "num_font": "Futura-Medium,Futura,'Helvetica Neue',Helvetica,Arial,sans-serif",
     },
 }
@@ -410,11 +410,12 @@ def render_code(text: str, c: dict) -> str:
 
 def render_image(alt: str, src: str, note: str, c: dict) -> str:
     if c.get("variant") == "orange":
-        # 参考风格：满宽居中、无圆角、无图注
+        # 参考风格：满宽居中；上下加大留白 + 细边框 + 小圆角，和正文拉开层次
         return (
-            '<section style="text-align:center; margin:0 8px 16px;">'
+            '<section style="text-align:center; margin:28px 8px;">'
             '<img src="%s" alt="%s" style="max-width:100%%; height:auto; display:block; '
-            'margin:0 auto;"></section>' % (html.escape(src), html.escape(alt))
+            'margin:0 auto; border:1px solid #ffe3d6; border-radius:6px;"></section>'
+            % (html.escape(src), html.escape(alt))
         )
     parts = [
         '<img src="%s" alt="%s" style="max-width:100%%; height:auto; display:block; '
