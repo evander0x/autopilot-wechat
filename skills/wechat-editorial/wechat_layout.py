@@ -8,7 +8,7 @@ wechat_layout.py — 公众号排版模板（编辑手记 / editorial-teal）
 
 用法：
     python3 wechat_layout.py article.md -o article.html
-    python3 wechat_layout.py article.md -o article.html --theme teal|ink
+    python3 wechat_layout.py article.md -o article.html --theme teal|ink|orange|yicai|deepseek
 
 Markdown 约定（除标准语法外）：
     ---
@@ -86,6 +86,53 @@ THEMES = {
         "'Hiragino Sans GB','Microsoft YaHei UI','Microsoft YaHei',Arial,sans-serif",
         "num_font": "Futura-Medium,Futura,'Helvetica Neue',Helvetica,Arial,sans-serif",
     },
+    # 财经蓝快讯流：参考「第一财经」新闻推送版式
+    #   正文 17px / 行高 1.75 / 90% 黑 / 字间距 1px / 两端对齐 / 左右 8px
+    #   小标题 = 16px 财经蓝加粗独立成段，无底色无边框无序号块
+    #   图注 12px 灰色；无卡片、无引用块、无分割线，纯段落极简流
+    "yicai": {
+        "accent": "#0098d6",
+        "accent_soft": "#eef7fb",
+        "accent_light": "#d9eff9",
+        "ink": "#171717",
+        "text": "rgba(0,0,0,0.9)",
+        "muted": "#888888",
+        "hairline": "#ececec",
+        "card_bg": "#f7f7f7",
+        "card_border": "#eeeeee",
+        "quote_text": "#333333",
+        "variant": "yicai",
+        "body_size": "17px",
+        "body_lh": "1.75",
+        "body_ls": "1px",
+        "body_margin": "0 8px 16px",
+        "font": "'PingFang SC',system-ui,-apple-system,'Helvetica Neue',"
+        "'Hiragino Sans GB','Microsoft YaHei UI','Microsoft YaHei',Arial,sans-serif",
+    },
+    # DeepSeek 蓝：参考「深度求索」官方公众号发布体版式
+    #   正文 15px / 深灰 rgb(79,79,79) / 左右 8px、段后 16px / 默认左对齐
+    #   小节标题 = 18px 加粗黑色独立成段，无序号块无底色无边框
+    #   品牌蓝 #4d6bfe 只用于链接/地址行；图注 12px 灰色
+    #   无卡片、无引用块、无分割线，纯段落极简流
+    "deepseek": {
+        "accent": "#4d6bfe",
+        "accent_soft": "#f0f3ff",
+        "accent_light": "#dfe6ff",
+        "ink": "#0d0d0d",
+        "text": "rgb(79,79,79)",
+        "muted": "#888888",
+        "hairline": "#ececec",
+        "card_bg": "#f7f7f7",
+        "card_border": "#eeeeee",
+        "quote_text": "#4f4f4f",
+        "variant": "deepseek",
+        "body_size": "15px",
+        "body_lh": "1.75",
+        "body_ls": "0",
+        "body_margin": "0 8px 16px",
+        "font": "'PingFang SC NEW','PingFang SC',system-ui,-apple-system,'Helvetica Neue',"
+        "'Hiragino Sans GB','Microsoft YaHei UI','Microsoft YaHei',Arial,sans-serif",
+    },
 }
 
 # ---------------------------------------------------------------- 前置元数据
@@ -114,8 +161,8 @@ def inline(text: str, c: dict) -> str:
     t = html.escape(text, quote=False)
 
     def hl(m):
-        if c.get("variant") == "orange":
-            # 该风格没有彩色高亮，强调只有加粗
+        if c.get("variant") in ("orange", "yicai", "deepseek"):
+            # 这两种风格没有彩色高亮，强调只有加粗
             return '<strong style="font-weight:700;">%s</strong>' % m.group(1)
         return (
             '<span style="background:linear-gradient(to top,'
@@ -159,16 +206,18 @@ def render_blocks(body: str, c: dict) -> str:
             return
         text = " ".join(x.strip() for x in buf).strip()
         if text:
-            if c.get("variant") == "orange":
+            if c.get("variant") in ("orange", "yicai", "deepseek"):
+                align = "left" if c.get("variant") == "deepseek" else "justify"
                 out.append(
                     '<p style="margin:%s; font-size:%s; line-height:%s; color:%s; '
-                    'letter-spacing:%s; text-align:justify; font-family:%s;">%s</p>'
+                    'letter-spacing:%s; text-align:%s; font-family:%s;">%s</p>'
                     % (
                         c["body_margin"],
                         c["body_size"],
                         c["body_lh"],
                         c["text"],
                         c["body_ls"],
+                        align,
                         c["font"],
                         inline(text, c),
                     )
@@ -313,14 +362,24 @@ def render_blocks(body: str, c: dict) -> str:
             flush_paragraph(para)
             para = []
             addr = html.escape(stripped[len("地址："):].strip())
-            if c.get("variant") == "orange":
+            if c.get("variant") == "deepseek":
+                # DeepSeek 官方体：品牌蓝纯文本链接行，无底色
+                out.append(
+                    '<p style="margin:0 8px 16px; font-size:15px; line-height:1.75; '
+                    'color:%s; word-break:break-all; font-family:%s;">%s</p>'
+                    % (c["accent"], c["font"], addr)
+                )
+                i += 1
+                continue
+            if c.get("variant") in ("orange", "yicai", "deepseek"):
                 # 参考风格：灰底等宽「代码块」，和正文同宽
+                prefix = "开源地址：" if c.get("variant") == "orange" else ""
                 out.append(
                     '<section style="margin:0 8px 16px; padding:14px 16px; background:#f7f7f7; '
                     'border-radius:6px;">'
                     '<p style="margin:0; font-size:15px; line-height:1.7; color:#333333; '
                     'font-family:SFMono-Regular,Consolas,Menlo,monospace; '
-                    'letter-spacing:0; word-break:break-all;">开源地址：%s</p></section>' % addr
+                    'letter-spacing:0; word-break:break-all;">%s%s</p></section>' % (prefix, addr)
                 )
             else:
                 out.append(
@@ -346,7 +405,7 @@ def render_table(rows, c: dict) -> str:
     if not rows:
         return ""
     header, body = rows[0], rows[1:]
-    orange = c.get("variant") == "orange"
+    orange = c.get("variant") in ("orange", "yicai", "deepseek")
     head_bg = "transparent" if orange else c["accent_soft"]
     head_color = c["accent"] if orange else c["ink"]
     border = "#eeeeee" if orange else "#e7ecec"
@@ -386,7 +445,7 @@ def render_table(rows, c: dict) -> str:
 def render_code(text: str, c: dict) -> str:
     """代码块：灰底 + 等宽字体，保留原始缩进。样式全内联，不用 <style>。"""
     body = html.escape(text)
-    if c.get("variant") == "orange":
+    if c.get("variant") in ("orange", "yicai", "deepseek"):
         bg, border, code_color, size, radius = "#f7f7f7", "none", "rgba(0,0,0,0.82)", "15px", "6px"
         pad, margin, lh = "18px 20px", "24px 8px 28px", "1.9"
     else:
@@ -409,6 +468,20 @@ def render_code(text: str, c: dict) -> str:
 
 
 def render_image(alt: str, src: str, note: str, c: dict) -> str:
+    if c.get("variant") in ("yicai", "deepseek"):
+        # 财经蓝/DeepSeek：满宽居中无修饰，图注 12px 灰色小字（原版规格）
+        ls = "1px" if c.get("variant") == "yicai" else "0"
+        parts = [
+            '<img src="%s" alt="%s" style="max-width:100%%; height:auto; display:block; '
+            'margin:24px auto 6px;">' % (html.escape(src), html.escape(alt))
+        ]
+        caption = note or alt
+        if caption:
+            parts.append(
+                '<p style="text-align:center; font-size:12px; color:#888888; letter-spacing:%s; '
+                'margin:0 8px 20px;">%s</p>' % (ls, html.escape(caption))
+            )
+        return "".join(parts)
     if c.get("variant") == "orange":
         # 参考风格：满宽居中；上下加大留白 + 细边框 + 小圆角，和正文拉开层次
         return (
@@ -432,6 +505,20 @@ def render_image(alt: str, src: str, note: str, c: dict) -> str:
 
 def render_h2(text: str, c: dict) -> str:
     m = re.match(r"^(\d{1,2})[\s　.、]*(.*)$", text)
+    if c.get("variant") == "deepseek":
+        # DeepSeek 官方体：18px 加粗黑色独立成段，无序号块无底色，不强调编号
+        return (
+            '<p style="margin:24px 8px 12px; font-size:18px; line-height:1.75; color:%s; '
+            'font-weight:bold; letter-spacing:0; font-family:%s;">%s</p>'
+            % (c["ink"], c["font"], inline(text, c))
+        )
+    if c.get("variant") == "yicai":
+        # 财经蓝：16px 蓝色加粗独立成段，无序号块无底色，还原原版小节标题
+        return (
+            '<p style="margin:28px 8px 10px; font-size:16px; line-height:1.75; color:%s; '
+            'font-weight:bold; letter-spacing:1px; font-family:%s;">%s</p>'
+            % (c["accent"], c["font"], inline(text, c))
+        )
     if c.get("variant") == "orange":
         # 32px 橙色 Futura 编号 + 17px 常规标题，同一行，无底色无边框
         if m:
@@ -481,7 +568,7 @@ def render_h2(text: str, c: dict) -> str:
 
 
 def render_list(items, ordered: bool, c: dict) -> str:
-    if c.get("variant") == "orange":
+    if c.get("variant") in ("orange", "yicai", "deepseek"):
         rows = []
         for idx, item in enumerate(items, 1):
             mark = (
@@ -521,8 +608,8 @@ def render_list(items, ordered: bool, c: dict) -> str:
 
 
 def render_card(title: str, block, c: dict) -> str:
-    if c.get("variant") == "orange":
-        # 该风格没有卡片容器：标题加粗 + 纯段落，保持页面干净
+    if c.get("variant") in ("orange", "yicai", "deepseek"):
+        # 这两种风格没有卡片容器：标题加粗 + 纯段落，保持页面干净
         items = [b.strip() for b in block if b.strip()]
         parts = []
         if title:
@@ -587,8 +674,8 @@ def render_card(title: str, block, c: dict) -> str:
 def render_punch(block, c: dict) -> str:
     lines = [b.strip() for b in block if b.strip()]
 
-    if c.get("variant") == "orange":
-        # 该风格没有金句框：居中加粗 + 常规副行，靠留白分隔
+    if c.get("variant") in ("orange", "yicai", "deepseek"):
+        # 这两种风格没有金句框：居中加粗 + 常规副行，靠留白分隔
         parts = []
         for idx, line in enumerate(lines):
             if idx == 0:
@@ -650,7 +737,7 @@ def render_article(md_text: str, theme: str = "teal", include_header: bool = Tru
         )
 
     if lead:
-        if c.get("variant") == "orange":
+        if c.get("variant") in ("orange", "yicai", "deepseek"):
             lead_html = (
                 '<p style="margin:0 8px 16px; font-size:15px; line-height:%s; color:%s; '
                 'letter-spacing:%s; text-align:justify; font-family:%s;">%s</p>'
