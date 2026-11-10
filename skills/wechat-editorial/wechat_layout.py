@@ -446,8 +446,14 @@ def render_code(text: str, c: dict) -> str:
     """代码块：灰底 + 等宽字体，保留原始缩进。样式全内联，不用 <style>。"""
     body = html.escape(text)
     if c.get("variant") in ("orange", "yicai", "deepseek"):
-        bg, border, code_color, size, radius = "#f7f7f7", "none", "rgba(0,0,0,0.82)", "15px", "6px"
-        pad, margin, lh = "18px 20px", "24px 8px 28px", "1.9"
+        bg, border, code_color, size, radius = (
+            "#f7f7f7",
+            "1px solid #f0f0f0",
+            "rgba(0,0,0,0.82)",
+            "14px",
+            "8px",
+        )
+        pad, margin, lh = "16px 18px", "24px 8px 28px", "1.9"
     else:
         bg, border, code_color, size, radius = (
             "#f6f8f9",
@@ -483,13 +489,20 @@ def render_image(alt: str, src: str, note: str, c: dict) -> str:
             )
         return "".join(parts)
     if c.get("variant") == "orange":
-        # 参考风格：满宽居中；上下加大留白 + 细边框 + 小圆角，和正文拉开层次
-        return (
+        # 参考风格：满宽居中 + 细边框小圆角；有标注时渲染 12.5px 居中灰字，无则不加图注
+        parts = [
             '<section style="text-align:center; margin:28px 8px;">'
             '<img src="%s" alt="%s" style="max-width:100%%; height:auto; display:block; '
-            'margin:0 auto; border:1px solid #ffe3d6; border-radius:6px;"></section>'
-            % (html.escape(src), html.escape(alt))
-        )
+            'margin:0 auto; border:1px solid #ffe3d6; border-radius:6px;">' % (html.escape(src), html.escape(alt))
+        ]
+        caption = note or alt
+        if caption:
+            parts.append(
+                '<p style="text-align:center; font-size:12.5px; line-height:1.7; color:#9a9a9a; '
+                'letter-spacing:.5px; margin:10px 0 0;">%s</p>' % html.escape(caption)
+            )
+        parts.append("</section>")
+        return "".join(parts)
     parts = [
         '<img src="%s" alt="%s" style="max-width:100%%; height:auto; display:block; '
         'margin:30px auto 8px; border-radius:8px;">' % (html.escape(src), html.escape(alt))
@@ -520,7 +533,7 @@ def render_h2(text: str, c: dict) -> str:
             % (c["accent"], c["font"], inline(text, c))
         )
     if c.get("variant") == "orange":
-        # 32px 橙色 Futura 编号 + 17px 常规标题，同一行，无底色无边框
+        # 32px 橙色 Futura 编号 + 17px 加粗标题，同一行，无底色无边框
         if m:
             num, title = m.group(1), m.group(2)
             return (
@@ -528,7 +541,7 @@ def render_h2(text: str, c: dict) -> str:
                 'letter-spacing:%s; text-align:justify; font-family:%s;">'
                 '<span style="color:%s; font-family:%s; font-size:32px; font-weight:700; '
                 'letter-spacing:1px;">%s</span> '
-                '<span style="font-size:%s; font-weight:400;">%s</span></p>'
+                '<span style="font-size:%s; font-weight:600; color:#171717;">%s</span></p>'
                 % (
                     c["body_size"],
                     c["body_lh"],
@@ -543,9 +556,9 @@ def render_h2(text: str, c: dict) -> str:
                 )
             )
         return (
-            '<p style="margin:24px 8px 0px; font-size:%s; line-height:%s; color:%s; '
-            'font-weight:700; letter-spacing:%s; font-family:%s;">%s</p>'
-            % (c["body_size"], c["body_lh"], c["text"], c["body_ls"], c["font"], inline(text, c))
+            '<p style="margin:24px 8px 0px; font-size:%s; line-height:%s; color:#171717; '
+            'font-weight:600; letter-spacing:%s; font-family:%s;">%s</p>'
+            % (c["body_size"], c["body_lh"], c["body_ls"], c["font"], inline(text, c))
         )
 
     if m:
