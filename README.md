@@ -28,7 +28,10 @@ wechat-autopilot/
 └── examples/                 # 一篇样例文章（源文件与两种产物）
     ├── sample.md             # 编辑手记语法的源文件
     ├── sample.html           # 完整页面（预览用）
-    └── sample.fragment.html  # 正文片段（推送用）
+    ├── sample.fragment.html  # 正文片段（推送用）
+    └── style-demos/          # 主题样式演示（版式提炼自公开公众号文章）
+        ├── yicai/            # 财经蓝快讯流（参考第一财经新闻推送）
+        └── deepseek/         # DeepSeek 蓝发布体（参考深度求索官方号）
 ```
 
 ## 快速开始
@@ -37,8 +40,11 @@ wechat-autopilot/
 
 ```bash
 python3 skills/wechat-editorial/wechat_layout.py article.md -o article.html
-# --theme ink     墨色版（默认为 teal 深青）
-# --fragment      只输出正文片段（推草稿箱用）
+# --theme ink       墨色版（默认为 teal 深青）
+# --theme orange    橙色科技流
+# --theme yicai     财经蓝快讯流（示例见 examples/style-demos/yicai/）
+# --theme deepseek  DeepSeek 蓝发布体（示例见 examples/style-demos/deepseek/）
+# --fragment        只输出正文片段（推草稿箱用）
 ```
 
 源文件写法见 [`skills/wechat-editorial/SKILL.md`](skills/wechat-editorial/SKILL.md)，核心约定：
